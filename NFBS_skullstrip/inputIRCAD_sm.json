@@ -1,0 +1,9 @@
+{
+    "fullFileName": "/Vessel_testrun_sm.csv",
+    "delimiter": ",",
+    "volCol": 3,
+    "lblCol": 4,
+    "idCol": 1,
+    "stoFoldername": "testresults"
+}
+
