@@ -2,13 +2,13 @@
 % Train and cross validate a 3-D densenet for brain extraction on T1w image
 % load nifti data from inputIRCAD.csv 
 
-% Clear workspaces
+% Clear workspace
 clearvars; close all; clc;
 
 gpuDevice(1)
 
 %Input filename and pathways
-vName = 'inputIRCAD.json';
+vName = 'inputIRCAD_sm.json';
 jsonText = fileread(vName);
 jsonData = jsondecode(jsonText);
 
@@ -59,11 +59,11 @@ for id = 1:length(idLoc)
         imgResized = ['resized_T1w_', patientId,'.nii'];
         lblResized = ['resized_T1w_livermask_', patientId, '.nii'];
         
-        system(sprintf('/home/ubuntu/Documents/c3d-1.0.0-Linux-x86_64/bin//c3d %s -shift %f -scale %f -clip -5 5 -type float -o %s', imgFilename, -chn_Mean, scale, imgNormalized));  
-        system(sprintf('/home/ubuntu/Documents/c3d-1.0.0-Linux-x86_64/bin//c3d %s -o %s', imgNormalized, imgResized)); %removed this since images were already reshaped
-        system(sprintf('/home/ubuntu/Documents/c3d-1.0.0-Linux-x86_64/bin//c3d %s -o %s', lblFilename, lblResized)); %removed this since images were already reshaped
+        system(sprintf('c3d %s -o %s', imgFilename, imgNormalized));  %removed this since images were already reshaped
+        system(sprintf('c3d %s -o %s', imgNormalized, imgResized)); %removed this since images were already reshaped
+        system(sprintf('c3d %s -o %s', lblFilename, lblResized)); %removed this since images were already reshaped
         
-        % Changed these to be for all i* instead of A* -- make this general
+        % Changed these to be for all i* instead of A*
         movefile('normalized_T1w_i*' ,fullfile(destination,'imgNormalized'));
         movefile('resized_T1w_i*',fullfile(destination,'imgResized'));
         movefile('resized_T1w_livermask_i*',fullfile(destination,'lblResized'));
@@ -119,7 +119,7 @@ for idxFold = 1:c1.NumTestSets
 %Need Random Patch Extraction on training and validation Data
     patchSize = [64 64 64];
     patchPerImage = 16;
-    miniBatchSize = 4; %originally 8 
+    miniBatchSize = 4; %originally was 8
 
 %training patch datastore
     trPatchDs = randomPatchExtractionDatastore(imdsTrain,pxdsTrain,patchSize, ...
@@ -145,13 +145,13 @@ lgraph = layerGraph();
 tempLayers = [
     image3dInputLayer([64 64 64 n],"Name","input","Normalization","none")
     batchNormalizationLayer("Name","BN_Module1_Level1")
-    convolution3dLayer([3 3 3],16,"Name","conv_Module1_Level1","Padding","same","WeightsInitializer","narrow-normal") %was 32
+    convolution3dLayer([3 3 3],16,"Name","conv_Module1_Level1","Padding","same","WeightsInitializer","narrow-normal")
     reluLayer("Name","relu_Module1_Level1")];
 lgraph = addLayers(lgraph,tempLayers);
 
 tempLayers = [
     batchNormalizationLayer("Name","BN_Module1_Level2")
-    convolution3dLayer([3 3 3],32,"Name","conv_Module1_Level2","Padding","same","WeightsInitializer","narrow-normal") %was 64
+    convolution3dLayer([3 3 3],16,"Name","conv_Module1_Level2","Padding","same","WeightsInitializer","narrow-normal")
     reluLayer("Name","relu_Module1_Level2")];
 lgraph = addLayers(lgraph,tempLayers);
 
@@ -161,13 +161,13 @@ lgraph = addLayers(lgraph,tempLayers);
 tempLayers = [
     maxPooling3dLayer([2 2 2],"Name","maxpool_Module1","Padding","same","Stride",[2 2 2])
     batchNormalizationLayer("Name","BN_Module2_Level1")
-    convolution3dLayer([3 3 3],32,"Name","conv_Module2_Level1","Padding","same","WeightsInitializer","narrow-normal") %was 64
+    convolution3dLayer([3 3 3],16,"Name","conv_Module2_Level1","Padding","same","WeightsInitializer","narrow-normal")
     reluLayer("Name","relu_Module2_Level1")];
 lgraph = addLayers(lgraph,tempLayers);
 
 tempLayers = [
     batchNormalizationLayer("Name","BN_Module2_Level2")
-    convolution3dLayer([3 3 3],64,"Name","conv_Module2_Level2","Padding","same","WeightsInitializer","narrow-normal") %was 128
+    convolution3dLayer([3 3 3],16,"Name","conv_Module2_Level2","Padding","same","WeightsInitializer","narrow-normal")
     reluLayer("Name","relu_Module2_Level2")];
 lgraph = addLayers(lgraph,tempLayers);
 
@@ -177,13 +177,13 @@ lgraph = addLayers(lgraph,tempLayers);
 tempLayers = [
     maxPooling3dLayer([2 2 2],"Name","maxpool_Module2","Padding","same","Stride",[2 2 2])
     batchNormalizationLayer("Name","BN_Module3_Level1")
-    convolution3dLayer([3 3 3],64,"Name","conv_Module3_Level1","Padding","same","WeightsInitializer","narrow-normal") %was 128
+    convolution3dLayer([3 3 3],16,"Name","conv_Module3_Level1","Padding","same","WeightsInitializer","narrow-normal")
     reluLayer("Name","relu_Module3_Level1")];
 lgraph = addLayers(lgraph,tempLayers);
 
 tempLayers = [
     batchNormalizationLayer("Name","BN_Module3_Level2")
-    convolution3dLayer([3 3 3],128,"Name","conv_Module3_Level2","Padding","same","WeightsInitializer","narrow-normal") %was 256
+    convolution3dLayer([3 3 3],16,"Name","conv_Module3_Level2","Padding","same","WeightsInitializer","narrow-normal")
     reluLayer("Name","relu_Module3_Level2")];
 lgraph = addLayers(lgraph,tempLayers);
 
@@ -193,74 +193,74 @@ lgraph = addLayers(lgraph,tempLayers);
 tempLayers = [
     maxPooling3dLayer([2 2 2],"Name","maxpool_Module3","Padding","same","Stride",[2 2 2])
     batchNormalizationLayer("Name","BN_Module4_Level1")
-    convolution3dLayer([3 3 3],128,"Name","conv_Module4_Level1","Padding","same","WeightsInitializer","narrow-normal") %was 256
+    convolution3dLayer([3 3 3],16,"Name","conv_Module4_Level1","Padding","same","WeightsInitializer","narrow-normal")
     reluLayer("Name","relu_Module4_Level1")];
 lgraph = addLayers(lgraph,tempLayers);
 
 tempLayers = [
     batchNormalizationLayer("Name","BN_Module4_Level2")
-    convolution3dLayer([3 3 3],256,"Name","conv_Module4_Level2","Padding","same","WeightsInitializer","narrow-normal") %was 512
+    convolution3dLayer([3 3 3],16,"Name","conv_Module4_Level2","Padding","same","WeightsInitializer","narrow-normal")
     reluLayer("Name","relu_Module4_Level2")];
 lgraph = addLayers(lgraph,tempLayers);
 
 tempLayers = [
     concatenationLayer(4,2,"Name","concat_4")
-    upsample3dLayer([2 2 2],256,"Name","upsample_Module4","Stride",[2 2 2])]; %was 512
+    upsample3dLayer([2 2 2],16,"Name","upsample_Module4","Stride",[2 2 2])];
 lgraph = addLayers(lgraph,tempLayers);
 
 tempLayers = [
     concatenationLayer(4,2,"Name","concat3")
     batchNormalizationLayer("Name","BN_Module5_Level1")
-    convolution3dLayer([3 3 3],128,"Name","conv_Module5_Level1","Padding","same","WeightsInitializer","narrow-normal") %was 256
+    convolution3dLayer([3 3 3],16,"Name","conv_Module5_Level1","Padding","same","WeightsInitializer","narrow-normal")
     reluLayer("Name","relu_Module5_Level1")];
 lgraph = addLayers(lgraph,tempLayers);
 
 tempLayers = [
     batchNormalizationLayer("Name","BN_Module5_Level2")
-    convolution3dLayer([3 3 3],128,"Name","conv_Module5_Level2","Padding","same","WeightsInitializer","narrow-normal") %was 256
+    convolution3dLayer([3 3 3],16,"Name","conv_Module5_Level2","Padding","same","WeightsInitializer","narrow-normal")
     reluLayer("Name","relu_Module5_Level2")];
 lgraph = addLayers(lgraph,tempLayers);
 
 tempLayers = [
     concatenationLayer(4,2,"Name","concat_5")
-    upsample3dLayer([2 2 2],128,"Name","upsample_Module5","Stride",[2 2 2])]; %was 256
+    upsample3dLayer([2 2 2],16,"Name","upsample_Module5","Stride",[2 2 2])];
 lgraph = addLayers(lgraph,tempLayers);
 
 tempLayers = [
     concatenationLayer(4,2,"Name","concat2")
     batchNormalizationLayer("Name","BN_Module6_Level1")
-    convolution3dLayer([3 3 3],64,"Name","conv_Module6_Level1","Padding","same","WeightsInitializer","narrow-normal") %was 128
+    convolution3dLayer([3 3 3],16,"Name","conv_Module6_Level1","Padding","same","WeightsInitializer","narrow-normal")
     reluLayer("Name","relu_Module6_Level1")];
 lgraph = addLayers(lgraph,tempLayers);
 
 tempLayers = [
     batchNormalizationLayer("Name","BN_Module6_Level2")
-    convolution3dLayer([3 3 3],64,"Name","conv_Module6_Level2","Padding","same","WeightsInitializer","narrow-normal") %was 128
+    convolution3dLayer([3 3 3],16,"Name","conv_Module6_Level2","Padding","same","WeightsInitializer","narrow-normal")
     reluLayer("Name","relu_Module6_Level2")];
 lgraph = addLayers(lgraph,tempLayers);
 
 tempLayers = [
     concatenationLayer(4,2,"Name","concat_6")
-    upsample3dLayer([2 2 2],64,"Name","upsample_Module6","Stride",[2 2 2])]; %was 128
+    upsample3dLayer([2 2 2],16,"Name","upsample_Module6","Stride",[2 2 2])];
 lgraph = addLayers(lgraph,tempLayers);
 
 tempLayers = [
     concatenationLayer(4,2,"Name","concat1")
     batchNormalizationLayer("Name","BN_Module7_Level1")
-    convolution3dLayer([3 3 3],32,"Name","conv_Module7_Level1","Padding","same") %was 64
+    convolution3dLayer([3 3 3],16,"Name","conv_Module7_Level1","Padding","same")
     reluLayer("Name","relu_Module7_Level1")];
 lgraph = addLayers(lgraph,tempLayers);
 
 tempLayers = [
     batchNormalizationLayer("Name","BN_Module7_Level2")
-    convolution3dLayer([3 3 3],32,"Name","conv_Module7_Level2","Padding","same") %was 64
+    convolution3dLayer([3 3 3],16,"Name","conv_Module7_Level2","Padding","same")
     reluLayer("Name","relu_Module7_Level2")];
 lgraph = addLayers(lgraph,tempLayers);
 
 tempLayers = [
     concatenationLayer(4,2,"Name","concat")
     batchNormalizationLayer("Name","BN_Module7_Level3")
-    convolution3dLayer([1 1 1],2,"Name","ConvLast_Module7") %was 2
+    convolution3dLayer([1 1 1],2,"Name","ConvLast_Module7")
     softmaxLayer("Name","softmax")
     dicePixelClassification3dLayer("output")];
 lgraph = addLayers(lgraph,tempLayers);
