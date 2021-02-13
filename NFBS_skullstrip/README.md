@@ -1,19 +1,13 @@
 # NFBS_skullstrip
 
+## Data Prep 
+Location of data is outlined in inputIRCAD.json and Vessel_testrun.csv. 
+The preprocessed data is uploaded to the Rice Box: https://rice.app.box.com/folder/123924617179
 
-## Run Preprocess-Resize to 192 192 192 - run Kfold - Train with Densenet3d
-matlab trainingNFBS192.m 
+## Train Data
+Train data using trainingIRCADWithC3d.m
 
-Input datapath: inputNFBS192.json
+## Test Data 
+Test training using testIRCADWithC3d.m
 
-## Helper functions for run training: 
-matRead.m
-upsample3dLayer.m
-dicePixelClassification3dLayer.m
-
-## Create Test data with kfold indices & Run Segmentation on Test Data 
-matlab testNFBS192.m
-
-## Calculate DSC 
-matlab dsc.m
 
