@@ -1,0 +1,6 @@
+uid,dataid ,image,label 
+i01,ircad,testrun/patient_1.nii,testrun/vessel_1.nii
+i02,ircad,testrun/patient_2.nii,testrun/vessel_2.nii
+i03,ircad,testrun/patient_3.nii,testrun/vessel_3.nii
+i04,ircad,testrun/patient_4.nii,testrun/vessel_4.nii
+i05,ircad,testrun/patient_5.nii,testrun/vessel_5.nii
