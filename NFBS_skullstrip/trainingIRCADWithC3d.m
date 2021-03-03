@@ -8,7 +8,7 @@ clearvars; close all; clc;
 gpuDevice(1)
 
 %Input filename and pathways
-vName = 'inputIRCAD_sm.json';
+vName = 'inputIRCAD.json';
 jsonText = fileread(vName);
 jsonData = jsondecode(jsonText);
 
@@ -30,6 +30,7 @@ idLoc = A(:,idCol);
 stoFoldername = jsonData.stoFoldername;
 destination = fullfile(stoFoldername);
 
+
 %create directories if they do not exist to store preprocessed data 
 %edited this so it does not throw an error 
 if not(isfolder(fullfile(destination,'imgNormalized')))
@@ -48,11 +49,11 @@ for id = 1:length(idLoc)
         lblFilename = string(lblLoc(id,:));
         
         imgFilename = string(volLoc(id,:));
-        outV = niftiread(imgFilename);
-        outV1 = single(outV);
-        chn_Mean = mean(outV1,[1 2 3]);
-        chn_Std = std(outV1,0,[1 2 3]);
-        scale = 1./chn_Std;
+        %outV = niftiread(imgFilename);
+        %outV1 = single(outV);
+        %chn_Mean = mean(outV1,[1 2 3]);
+        %chn_Std = std(outV1,0,[1 2 3]);
+        %scale = 1./chn_Std;
     
         %Make this work for .nii or .gz.nii
         imgNormalized = ['normalized_T1w_',patientId,'.nii'];
@@ -80,7 +81,7 @@ procVolDs = imageDatastore(procVolLoc, ...
 procLblReader =  @(x) uint8(niftiread(x));
 procLblLoc = fullfile(destination,'lblResized');
 classNames = ["background","Vessel"];
-pixelLabelID = [0 1];
+pixelLabelID = [0 20]; % pixel value for the background and for vessels
 procLblDs = pixelLabelDatastore(procLblLoc,classNames,pixelLabelID, ...
     'FileExtensions','.nii','ReadFcn',procLblReader);
 
@@ -308,7 +309,7 @@ plot(lgraph);
 
 %% do the training %%
 options = trainingOptions('adam', ...
-    'MaxEpochs',50, ...
+    'MaxEpochs',5, ...
     'InitialLearnRate',5e-4, ...
     'LearnRateSchedule','piecewise', ...
     'LearnRateDropPeriod',5, ...
