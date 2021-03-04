@@ -3,15 +3,16 @@
 % Clear workspace
 clear; close all; clc;
 
-destination_runs = '/home/btzolova/Documents/NFBS_liver/NFBS_skullstrip/IRCADwithC3d';
-destination = '/home/btzolova/Documents/NFBS_liver/NFBS_skullstrip/testresults';
-imgResizedDir = dir(fullfile(destination, 'imgResized','*.nii'));
-imgFile = {imgResizedDir.name}';
-imgFolder = {imgResizedDir.folder}';
+destination_runs = 'C:/Users/btzolova.PCI/Documents/Vessel_Segmentation/NFBS_skullstrip/NFBS_skullstrip/IRCADwithC3d';
+destination = 'C:/Users/btzolova.PCI/Documents/Vessel_Segmentation/NFBS_skullstrip/NFBS_skullstrip/testrun';
 
-lblResizedDir = dir(fullfile(destination, 'lblResized','*.nii'));
-lblFile = {lblResizedDir.name}';
-lblFolder = {lblResizedDir.folder}';
+imgDir = dir(fullfile(destination, 'patient_CT','*.nii'));
+imgFile = {imgDir.name}';
+imgFolder = {imgDir.folder}';
+
+lblDir = dir(fullfile(destination, 'vessel_lbl','*.nii'));
+lblFile = {lblDir.name}';
+lblFolder = {lblDir.folder}';
 
 %%Load test indices 
 s = load('idxTest.mat');
@@ -55,6 +56,7 @@ for kfold = 1:1
         mkdir(fullfile(destination_runs,['groundTruthLabel-fold' num2str(kfold)]));
         
     for id = 1:length(imgFileTest)
+        fprintf('line59')
         
         imgLoc = fullfile(imgFolderTest(id,kfold),imgFileTest(id,kfold));
         imgName = niftiread(char(imgLoc));
@@ -69,13 +71,15 @@ for kfold = 1:1
                
         predLblName = ['predictedLbl_', patientId];
         grdLblName = ['groundTruthLbl_',patientId];
+        fprintf('line74');
 
         predDir = fullfile(destination_runs,['predictedLabel-fold' num2str(kfold)],predLblName);
         groundDir = fullfile(destination_runs,['groundTruthLabel-fold' num2str(kfold)],grdLblName);
+        fprintf('line78');
 
         groundTruthLabel = lblName;
         fprintf('line81');
-        predictedLabel = semanticseg(imgName,net,'ExecutionEnvironment','cpu');
+        predictedLabel = semanticseg(imgName,net); %,'ExecutionEnvironment','cpu');
         fprintf('line82\n');
         
         % save preprocessed data to folders

@@ -1,6 +1,5 @@
-%% 3-D Brain Extraction from MRI
-% Train and cross validate a 3-D densenet for brain extraction on T1w image
-% load nifti data from inputIRCAD.csv 
+%% 3-D Blood Vessel Extraction from MRI
+% Train and cross validate a 3-D densenet
 
 % Clear workspace
 clearvars; close all; clc;
@@ -8,99 +7,42 @@ clearvars; close all; clc;
 gpuDevice(1)
 
 %Input filename and pathways
-vName = 'inputIRCAD.json';
+vName = 'inputIRCAD.json'; %load nifti data from inputIRCAD.csv 
 jsonText = fileread(vName);
 jsonData = jsondecode(jsonText);
 
 % Read file pathways into table
-fullFileName = jsonData.fullFileName;
-delimiter = jsonData.delimiter;
-
-T = readtable(fullFileName, 'Delimiter', delimiter);
+T = readtable(jsonData.fullFileName, 'Delimiter', jsonData.delimiter);
 A = table2array(T);
 
-volCol = jsonData.volCol;
-lblCol = jsonData.lblCol;
-idCol = jsonData.idCol;
+volLoc = A(:,jsonData.volCol);
+lblLoc = A(:,jsonData.lblCol);
+idLoc = A(:,jsonData.idCol);
 
-volLoc = A(:,volCol);
-lblLoc = A(:,lblCol);
-idLoc = A(:,idCol);
-
-stoFoldername = jsonData.stoFoldername;
-destination = fullfile(stoFoldername);
-
-
-%create directories if they do not exist to store preprocessed data 
-%edited this so it does not throw an error 
-if not(isfolder(fullfile(destination,'imgNormalized')))
-    mkdir(fullfile(destination,'imgNormalized'));
-end 
-if not(isfolder(fullfile(destination,'imgResized')))
-    mkdir(fullfile(destination,'imgResized'));
-end 
-if not(isfolder(fullfile(destination,'lblResized')))
-    mkdir(fullfile(destination,'lblResized'));
-end 
-
-for id = 1:length(idLoc)
-    
-        patientId = char(idLoc(id,:));
-        lblFilename = string(lblLoc(id,:));
-        
-        imgFilename = string(volLoc(id,:));
-        %outV = niftiread(imgFilename);
-        %outV1 = single(outV);
-        %chn_Mean = mean(outV1,[1 2 3]);
-        %chn_Std = std(outV1,0,[1 2 3]);
-        %scale = 1./chn_Std;
-    
-        %Make this work for .nii or .gz.nii
-        imgNormalized = ['normalized_T1w_',patientId,'.nii'];
-        imgResized = ['resized_T1w_', patientId,'.nii'];
-        lblResized = ['resized_T1w_livermask_', patientId, '.nii'];
-        
-        system(sprintf('c3d %s -o %s', imgFilename, imgNormalized));  %removed this since images were already reshaped
-        system(sprintf('c3d %s -o %s', imgNormalized, imgResized)); %removed this since images were already reshaped
-        system(sprintf('c3d %s -o %s', lblFilename, lblResized)); %removed this since images were already reshaped
-        
-        % Changed these to be for all i* instead of A*
-        movefile('normalized_T1w_i*' ,fullfile(destination,'imgNormalized'));
-        movefile('resized_T1w_i*',fullfile(destination,'imgResized'));
-        movefile('resized_T1w_livermask_i*',fullfile(destination,'lblResized'));
-  
-end
+destination = fullfile(jsonData.stoFoldername);
 
 %% create datastores for processed labels and images
 % Images Datapath % define reader
 procVolReader = @(x) niftiread(x);
-procVolLoc = fullfile(destination,'imgResized');
-procVolDs = imageDatastore(procVolLoc, ...
-    'FileExtensions','.nii','LabelSource','foldernames','ReadFcn',procVolReader);
+procVolLoc = fullfile(destination,'patient_CT');
+procVolDs = imageDatastore(procVolLoc, 'FileExtensions','.nii','LabelSource','foldernames','ReadFcn',procVolReader);
 
 procLblReader =  @(x) uint8(niftiread(x));
-procLblLoc = fullfile(destination,'lblResized');
+procLblLoc = fullfile(destination,'vessel_lbl');
 classNames = ["background","Vessel"];
-pixelLabelID = [0 20]; % pixel value for the background and for vessels
-procLblDs = pixelLabelDatastore(procLblLoc,classNames,pixelLabelID, ...
-    'FileExtensions','.nii','ReadFcn',procLblReader);
+pixelLabelID = [0 20];
+procLblDs = pixelLabelDatastore(procLblLoc,classNames,pixelLabelID, 'FileExtensions','.nii','ReadFcn',procLblReader);
 
 %kfold partition
 num_images = length(procVolDs.Labels); %number of obervations for kfold
-c1 = cvpartition(num_images,'kfold',5);
+c1 = cvpartition(num_images,'kfold',4); %try with 4 instead of 5 
 err = zeros(c1.NumTestSets,1);
 
-C = cell(1,5);
-[idxTest] = deal(C);
+[idxTest] = deal(cell(1,c1.NumTestSets));
 
 for idxFold = 1:c1.NumTestSets 
     idxTest{idxFold} = test(c1,idxFold); %logical indices for test set
     save('idxTest.mat','idxTest');
-
-    %imdsTest{idxFold} = subset(procVolDs,idxTest{idxFold}); %test imagedatastore
-    %save('imdsTest.mat','imdsTest');
-    %pxdsTest{idxFold} = subset(procLblDs,idxTest{idxFold}); %test pixelimagedatastore
-    %%save('pxdsTest.mat', 'pxdsTest');
     
     idxHold = training(c1,idxFold); %logical indices for training set-holdout partition
     imdsHold = subset(procVolDs,idxHold); %imds for holdout partition
@@ -320,10 +262,12 @@ options = trainingOptions('adam', ...
     'Verbose',false, ...
     'MiniBatchSize',miniBatchSize);
 
-    modelDateTime = datestr(now,'dd-mmm-yyyy-HH-MM-SS');
+    %modelDateTime = datestr(now,'dd-mmm-yyyy-HH-MM-SS');
     [net,info] = trainNetwork(trPatchDs,lgraph,options);
-    save(['fold_' num2str(idxFold) '-trainedDensenet3d-' modelDateTime '-Epoch-' num2str(options.MaxEpochs) '.mat'],'net');
+    %save(['fold_' num2str(idxFold) '-trainedDensenet3d-' modelDateTime '-Epoch-' num2str(options.MaxEpochs) '.mat'],'net');
+    save(['fold_' num2str(idxFold) '-trainedDensenet3d-Epoch-' num2str(options.MaxEpochs) '.mat'],'net');
     infotable = struct2table(info);
-    writetable(infotable, ['fold_' num2str(idxFold) '-Densenet3dinfo-' modelDateTime '-Epoch-' num2str(options.MaxEpochs) '.txt']);
+    %writetable(infotable, ['fold_' num2str(idxFold) '-Densenet3dinfo-' modelDateTime '-Epoch-' num2str(options.MaxEpochs) '.txt']);
+    writetable(infotable, ['fold_' num2str(idxFold) '-Densenet3dinfo-Epoch-' num2str(options.MaxEpochs) '.txt']);
 end
 
