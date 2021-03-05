@@ -3,8 +3,8 @@
 % Clear workspace
 clear; close all; clc;
 
-destination_runs = 'C:/Users/btzolova.PCI/Documents/Vessel_Segmentation/NFBS_skullstrip/NFBS_skullstrip/IRCADwithC3d';
-destination = 'C:/Users/btzolova.PCI/Documents/Vessel_Segmentation/NFBS_skullstrip/NFBS_skullstrip/testrun';
+destination_runs = pwd + "/IRCADwithC3d";
+destination = pwd + "/testrun";
 
 imgDir = dir(fullfile(destination, 'patient_CT','*.nii'));
 imgFile = {imgDir.name}';
@@ -19,10 +19,9 @@ s = load('idxTest.mat');
 c = struct2cell(s);
 idxTest = cat(1,c{:});
 
-%%Load patient id
+%Load Patient id
 vName = 'inputIRCAD.json';
-jsonText = fileread(vName);
-jsonData = jsondecode(jsonText);
+jsonData = jsondecode(fileread(vName));
 fullFileName = jsonData.fullFileName;
 delimiter = jsonData.delimiter;
 T = readtable(fullFileName, 'Delimiter', delimiter);
@@ -38,7 +37,7 @@ for kfold = 1:1
     
     disp(['Processing K-fold-' num2str(kfold)]);
     
-    trainedNetName = ['fold_' num2str(kfold) '-trainedDensenet3d.mat'];
+    trainedNetName = ['fold_' num2str(kfold) '-trainedDensenet3d-Epoch-5.mat'];
     load(fullfile(destination_runs, trainedNetName));
           
     testSet = idxTest{1,kfold};
@@ -56,7 +55,6 @@ for kfold = 1:1
         mkdir(fullfile(destination_runs,['groundTruthLabel-fold' num2str(kfold)]));
         
     for id = 1:length(imgFileTest)
-        fprintf('line59')
         
         imgLoc = fullfile(imgFolderTest(id,kfold),imgFileTest(id,kfold));
         imgName = niftiread(char(imgLoc));
@@ -65,27 +63,23 @@ for kfold = 1:1
         lblLoc = fullfile(lblFolderTest(id,kfold),lblFileTest(id,kfold));
         lblName = niftiread(char(lblLoc));
         lblinfo = niftiinfo(char(lblLoc));
-        fprintf('line68');
        
         patientId = char(testPatientId(id,kfold));
                
         predLblName = ['predictedLbl_', patientId];
         grdLblName = ['groundTruthLbl_',patientId];
-        fprintf('line74');
 
         predDir = fullfile(destination_runs,['predictedLabel-fold' num2str(kfold)],predLblName);
         groundDir = fullfile(destination_runs,['groundTruthLabel-fold' num2str(kfold)],grdLblName);
-        fprintf('line78');
 
         groundTruthLabel = lblName;
-        fprintf('line81');
-        predictedLabel = semanticseg(imgName,net); %,'ExecutionEnvironment','cpu');
+        fprintf('line78');
+        predictedLabel = semanticseg(imgName,net,'ExecutionEnvironment','cpu');
         fprintf('line82\n');
         
         % save preprocessed data to folders
-        niftiwrite(single(predictedLabel),predDir,imginfo);
+        niftiwrite(single(predictedLabel),predDir) %,imginfo);
         niftiwrite(groundTruthLabel,groundDir,lblinfo);
-                               
-        id = id + 1;
+                           
     end
 end

@@ -35,7 +35,7 @@ procLblDs = pixelLabelDatastore(procLblLoc,classNames,pixelLabelID, 'FileExtensi
 
 %kfold partition
 num_images = length(procVolDs.Labels); %number of obervations for kfold
-c1 = cvpartition(num_images,'kfold',4); %try with 4 instead of 5 
+c1 = cvpartition(num_images,'kfold',5); %try with 4 instead of 5 
 err = zeros(c1.NumTestSets,1);
 
 [idxTest] = deal(cell(1,c1.NumTestSets));
@@ -262,12 +262,12 @@ options = trainingOptions('adam', ...
     'Verbose',false, ...
     'MiniBatchSize',miniBatchSize);
 
-    %modelDateTime = datestr(now,'dd-mmm-yyyy-HH-MM-SS');
+    modelDateTime = datestr(now,'dd-mmm-yyyy-HH-MM-SS');
     [net,info] = trainNetwork(trPatchDs,lgraph,options);
     %save(['fold_' num2str(idxFold) '-trainedDensenet3d-' modelDateTime '-Epoch-' num2str(options.MaxEpochs) '.mat'],'net');
     save(['fold_' num2str(idxFold) '-trainedDensenet3d-Epoch-' num2str(options.MaxEpochs) '.mat'],'net');
     infotable = struct2table(info);
-    %writetable(infotable, ['fold_' num2str(idxFold) '-Densenet3dinfo-' modelDateTime '-Epoch-' num2str(options.MaxEpochs) '.txt']);
-    writetable(infotable, ['fold_' num2str(idxFold) '-Densenet3dinfo-Epoch-' num2str(options.MaxEpochs) '.txt']);
+    writetable(infotable, ['fold_' num2str(idxFold) '-Densenet3dinfo-' modelDateTime '-Epoch-' num2str(options.MaxEpochs) '.txt']);
+    %writetable(infotable, ['fold_' num2str(idxFold) '-Densenet3dinfo-Epoch-' num2str(options.MaxEpochs) '.txt']);
 end
 
