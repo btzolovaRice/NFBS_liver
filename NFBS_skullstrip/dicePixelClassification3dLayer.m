@@ -68,7 +68,7 @@ classdef dicePixelClassification3dLayer < nnet.layer.ClassificationLayer
             denom = sum(W.*union,4) + layer.Epsilon;
             
             N = size(Y,5);
-      
+            %fprintf('The size of Y 5 is %i\n', N);
             dLdY = (2*W.*Y.*numer./denom.^2 - 2*W.*T./denom)./N;
         end
     end
