@@ -3,7 +3,7 @@
 % Clear workspace
 clear; close all; clc;
 
-destination_runs = pwd + "/IRCADwithC3d";
+destination_runs = pwd + "/IRCADwithC3d/liver_30epoch";
 destination = pwd + "/testrun";
 
 imgDir = dir(fullfile(destination, 'patient_CT','*.nii'));
@@ -37,7 +37,7 @@ for kfold = 1:1
     
     disp(['Processing K-fold-' num2str(kfold)]);
     
-    trainedNetName = ['fold_' num2str(kfold) '-trainedDensenet3d-Epoch-5.mat'];
+    trainedNetName = ['fold_' num2str(kfold) '-trainedDensenet3d-Epoch-30.mat'];
     load(fullfile(destination_runs, trainedNetName));
           
     testSet = idxTest{1,kfold};
@@ -80,6 +80,7 @@ for kfold = 1:1
         % save preprocessed data to folders
         niftiwrite(single(predictedLabel),predDir) %,imginfo);
         niftiwrite(groundTruthLabel,groundDir,lblinfo);
-                           
+        
+        system(sprintf('c3d %s -shift -1 -o %s', predL, predL)); %shift predicted image so the values are 0 and 1                             
     end
 end
