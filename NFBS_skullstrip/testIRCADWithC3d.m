@@ -73,14 +73,16 @@ for kfold = 1:1
         groundDir = fullfile(destination_runs,['groundTruthLabel-fold' num2str(kfold)],grdLblName);
 
         groundTruthLabel = lblName;
-        fprintf('line78');
         predictedLabel = semanticseg(imgName,net,'ExecutionEnvironment','cpu');
-        fprintf('line82\n');
+        
+        %shift predicted image so the values are 0 and 1   
+        system(sprintf('c3d %s -shift -1 -o %s', predLabel, predLabel));     
+
+        [diceval, dicemat] = dicescorecalc.DiceValueCal(predictedLabel, groundTruthLabel);
         
         % save preprocessed data to folders
-        niftiwrite(single(predictedLabel),predDir) %,imginfo);
+        niftiwrite(single(predictedLabel),predDir,imginfo);
         niftiwrite(groundTruthLabel,groundDir,lblinfo);
-        
-        system(sprintf('c3d %s -shift -1 -o %s', predL, predL)); %shift predicted image so the values are 0 and 1                             
+                       
     end
 end

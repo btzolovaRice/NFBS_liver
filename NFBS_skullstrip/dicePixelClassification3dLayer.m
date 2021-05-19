@@ -35,7 +35,11 @@ classdef dicePixelClassification3dLayer < nnet.layer.ClassificationLayer
             % the predictions Y and the training targets T.   
 
             % Weights by inverse of region size.
-            W = 1./ max(eps,sum(sum(sum(T,1),2),3).^2);
+            summation = sum(sum(sum(T,1),2),3).^2;
+            if max(eps, summation) == eps 
+                error('Error. Summation must be greater than machine error.');
+            end 
+            W = 1./summation;
             
             % over spatial dimensions 1,2,3
             intersection = sum(sum(sum(Y.*T,1),2),3);
