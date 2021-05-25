@@ -38,15 +38,16 @@ classdef dicePixelClassification3dLayer < nnet.layer.ClassificationLayer
             summation = sum(sum(sum(T,1),2),3).^2;
             if max(eps, summation) == eps 
                 error('Error. Summation must be greater than machine error.');
-            end 
-            W = 1./summation;
+            else 
+                W = 1./max(eps, summation);
+            end
             
             % over spatial dimensions 1,2,3
             intersection = sum(sum(sum(Y.*T,1),2),3);
             union = sum(sum(sum(Y.^2 + T.^2, 1),2),3);          
             
             % over channels dim (4) :-  representing classes
-            numer = 2*sum(W.*intersection,4); % + layer.Epsilon;
+            numer = 2*sum(W.*intersection,4) + layer.Epsilon;
             denom = sum(W.*union,4) + layer.Epsilon;
             
             % Compute Dice score.
@@ -72,7 +73,8 @@ classdef dicePixelClassification3dLayer < nnet.layer.ClassificationLayer
             
             N = size(Y,5);
             dLdY = (2*W.*Y.*numer./denom.^2 - 2*W.*T./denom)./N;
-            grad_val(end+1) = dLdY; 
+            %fprintf('%1.2e\n', dLdY); 
+            %grad_val(end+1) = dLdY; 
         end
     end
 end

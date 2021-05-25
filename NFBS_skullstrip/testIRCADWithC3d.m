@@ -2,9 +2,12 @@
 
 % Clear workspace
 clear; close all; clc;
+kfoldnum = zeros(0,1); mydice = zeros(0,1); matdice = zeros(0,1);
 
-destination_runs = pwd + "/IRCADwithC3d/liver_30epoch";
-destination = pwd + "/testrun";
+% Call the directories
+destination_runs = pwd + "/IRCADwithC3d/liver_30epoch_conv1";
+destination = pwd + "/testrun"; %image files
+epnum = 30;
 
 imgDir = dir(fullfile(destination, 'patient_CT','*.nii'));
 imgFile = {imgDir.name}';
@@ -15,7 +18,7 @@ lblFile = {lblDir.name}';
 lblFolder = {lblDir.folder}';
 
 %%Load test indices 
-s = load('idxTest.mat');
+s = load(destination_runs + '/idxTest.mat');
 c = struct2cell(s);
 idxTest = cat(1,c{:});
 
@@ -30,18 +33,18 @@ idCol = jsonData.idCol;
 PId = A(:,idCol);
 patientId = cellstr(PId);
 
-C = cell(25,5);
+C = cell(1,5);
 [testPatientId, imgFileTest, imgFolderTest, lblFileTest, lblFolderTest] = deal(C);
 
-for kfold = 1:1
+for kfold = 1:length(idxTest)
     
     disp(['Processing K-fold-' num2str(kfold)]);
     
-    trainedNetName = ['fold_' num2str(kfold) '-trainedDensenet3d-Epoch-30.mat'];
+    trainedNetName = ['fold_' num2str(kfold) '-trainedDensenet3d-Epoch-' num2str(epnum) '.mat'];
     load(fullfile(destination_runs, trainedNetName));
           
     testSet = idxTest{1,kfold};
-    testPatientId(:,kfold) =  PId(testSet);%create test patientid set
+    testPatientId(:,kfold) =  PId(testSet); %create test patientid set
     save('testPatientId.mat','testPatientId');
     
     imgFileTest(:,kfold) = imgFile(testSet);
@@ -54,7 +57,7 @@ for kfold = 1:1
         mkdir(fullfile(destination_runs,['predictedLabel-fold' num2str(kfold)]));
         mkdir(fullfile(destination_runs,['groundTruthLabel-fold' num2str(kfold)]));
         
-    for id = 1:length(imgFileTest)
+    for id = 1:size(imgFileTest,1)
         
         imgLoc = fullfile(imgFolderTest(id,kfold),imgFileTest(id,kfold));
         imgName = niftiread(char(imgLoc));
@@ -75,14 +78,28 @@ for kfold = 1:1
         groundTruthLabel = lblName;
         predictedLabel = semanticseg(imgName,net,'ExecutionEnvironment','cpu');
         
-        %shift predicted image so the values are 0 and 1   
-        system(sprintf('c3d %s -shift -1 -o %s', predLabel, predLabel));     
-
-        [diceval, dicemat] = dicescorecalc.DiceValueCal(predictedLabel, groundTruthLabel);
-        
         % save preprocessed data to folders
         niftiwrite(single(predictedLabel),predDir,imginfo);
         niftiwrite(groundTruthLabel,groundDir,lblinfo);
                        
     end
+    
+    %shift predicted image so the values are 0 and 1       
+    predL = [predDir + '.nii'];    
+    system(sprintf('c3d %s -shift -1 -o %s', predL, predL));     
+
+    PL = niftiread(predL);
+    GT = niftiread(groundDir + '.nii');
+
+    
+    % calculate the dice score and save
+    [diceval, dicemat] = dicescorecalc(PL, GT);
+    kfoldnum(end+1, 1) = kfold;
+    mydice(end+1, 1) = diceval;
+    matdice(end+1, 1) = dicemat;
+    
 end
+
+T = table(kfoldnum, mydice, matdice);
+T.Properties.VariableNames = {'K fold', 'Dice Score', 'Matlab Dice'};
+writetable(T, destination_runs + "/dicevalues.txt");
