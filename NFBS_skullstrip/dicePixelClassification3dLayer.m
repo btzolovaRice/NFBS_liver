@@ -12,8 +12,10 @@ classdef dicePixelClassification3dLayer < nnet.layer.ClassificationLayer
     % Copyright 2018 The MathWorks, Inc.
     
     properties(Constant)
-        % Small constant to prevent division by zero. 
-        Epsilon = 1e-8;
+        Epsilon = 1e-8; %small change to prevent division by 0 
+        mbsize = 4; %the minibatchsize
+        W1 = 1.6; %weight for the vessel
+        W2 = 0.4; %weight for the background
     end
     
     methods
@@ -46,9 +48,17 @@ classdef dicePixelClassification3dLayer < nnet.layer.ClassificationLayer
             intersection = sum(sum(sum(Y.*T,1),2),3);
             union = sum(sum(sum(Y.^2 + T.^2, 1),2),3);          
             
+            %Numerator = zeros(layer.mbsize, 1);
+            %Denominator = zeros(layer.mbsize, 1);
+            
+            for i=1:4
+                Numerator = layer.W1*W(1,1,1,1,i).*intersection(1,1,1,1,i) + layer.W2*W(1,1,1,2,i).*intersection(1,1,1,2,i);
+                Denominator = layer.W1*W(1,1,1,1,i).*union(1,1,1,1,i) + layer.W2*W(1,1,1,2,i).*union(1,1,1,2,i);
+            end 
+            
             % over channels dim (4) :-  representing classes
-            numer = 2*sum(W.*intersection,4) + layer.Epsilon;
-            denom = sum(W.*union,4) + layer.Epsilon;
+            numer = 2*Numerator + layer.Epsilon;
+            denom = Denominator + layer.Epsilon;
             
             % Compute Dice score.
             dice = numer./denom;
