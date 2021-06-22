@@ -9,10 +9,10 @@ gpuDevice(1)
 %Input filename and pathways
 vName = 'inputIRCAD.json'; %load nifti data from inputIRCAD.csv 
 jsonData = jsondecode(fileread(vName)); %changes the original filename 
-dest = "IRCADwithC3d/liver_30epoch_3/";
-desfold = pwd + "/IRCADwithC3d/liver_30epoch_3/";
+dest = "IRCADwithC3d/liver_30epoch_7/";
+desfold = pwd + "/IRCADwithC3d/liver_30epoch_7/";
 epnum = 30;
-conv = 1;
+conv = 16;
 
 % Read file pathways into table
 T = readtable(jsonData.fullFileName, 'Delimiter', jsonData.delimiter);
@@ -271,29 +271,41 @@ options = trainingOptions('adam', ...
     'MiniBatchSize',miniBatchSize);
     
     modelDateTime = datestr(now,'dd-mm-yyyy-HH-MM-SS');
+    writematrix([], 'gradient.txt');
     [net,info] = trainNetwork(trPatchDs,lgraph,options);
     save(sprintf(desfold + 'fold_%d-trainedDensenet3d-Epoch-%d.mat', idxFold, epnum),'net');
     
-    %Create Graph
-    %{ 
-    iters = length(grad_val);
+    %Create Graph of learning rate
+    iters = length(info.BaseLearnRate);
     epochsp = linspace(1, iters, iters);
-    grad_plot = plot(epochsp, grad_val);
-    title('Gradient of Loss');
-    xlabel('Epochs');
-    ylabel('Change in Loss');
-    saveas(grad_plot, "Gradplot_" + idxFold + ".png");
-    %}
+    figr = figure;
+    rate_plot = plot(epochsp, info.BaseLearnRate);
+    title('Learn Rate over Iteration');
+    xlabel('Iteration');
+    ylabel('Base Learn Rate');
+    saveas(figr, dest + 'Rateplot_' + idxFold + '.png', 'png');
+    close(2);
+    
+    %Create graph of gradient
+    gradval = load('gradient.txt');
+    movefile('gradient.txt', dest + 'gradient_' + idxFold + '.txt');
+    iters = length(gradval);
+    epochsp = linspace(1, iters, iters);
+    figh = figure;
+    grad_plot = plot(epochsp, gradval);
+    title('Gradient over Iteration');
+    xlabel('Iteration');
+    ylabel('Gradient');
+    saveas(figh, dest + 'Gradplot_' + idxFold + '.png', 'png');
+    close(2);    
     
     %Finish saving
     infotable = struct2table(info);
     writetable(infotable, ['fold_' num2str(idxFold) '-Densenet3dinfo-' modelDateTime '-Epoch-' num2str(options.MaxEpochs) '.txt']);
-end
 
-h = findall(groot, 'Type', 'Figure'); 
-
-for i = 1:length(h)
-    saveas(h(i), sprintf(dest + 'Figure_%d.fig', i-1))
-    close(h(i));
+    close(1)
+    h = findall(groot, 'Type', 'Figure'); 
+    saveas(h, sprintf(dest + 'Figure_%d.fig', idxFold));
+    close(h);
 end
 
