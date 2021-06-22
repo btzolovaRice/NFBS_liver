@@ -48,17 +48,19 @@ classdef dicePixelClassification3dLayer < nnet.layer.ClassificationLayer
             intersection = sum(sum(sum(Y.*T,1),2),3);
             union = sum(sum(sum(Y.^2 + T.^2, 1),2),3);          
             
-            %Numerator = zeros(layer.mbsize, 1);
-            %Denominator = zeros(layer.mbsize, 1);
+            weighted_val = W; %gpuArray(single(zeros(layer.mbsize, 1))); %gpuArray(single(zeros(layer.mbsize, 1)));
             
             for i=1:4
-                Numerator = layer.W1*W(1,1,1,1,i).*intersection(1,1,1,1,i) + layer.W2*W(1,1,1,2,i).*intersection(1,1,1,2,i);
-                Denominator = layer.W1*W(1,1,1,1,i).*union(1,1,1,1,i) + layer.W2*W(1,1,1,2,i).*union(1,1,1,2,i);
+                weighted_val(:,:,1,1,i) = layer.W1*W(1,1,1,1,i).*intersection(1,1,1,1,i) + layer.W2*W(1,1,1,2,i).*intersection(1,1,1,2,i);
+                weighted_val(:,:,1,2,i) = layer.W1*W(1,1,1,1,i).*union(1,1,1,1,i) + layer.W2*W(1,1,1,2,i).*union(1,1,1,2,i);
             end 
             
             % over channels dim (4) :-  representing classes
-            numer = 2*Numerator + layer.Epsilon;
-            denom = Denominator + layer.Epsilon;
+            numer = 2*weighted_val(1,1,1,1,:) + layer.Epsilon;
+            denom = weighted_val(1,1,1,2,:) + layer.Epsilon;
+
+            %numer = 2*sum(W.*intersection,4) + layer.Epsilon;
+            %denom = sum(W.*union,4) + layer.Epsilon;
             
             % Compute Dice score.
             dice = numer./denom;
@@ -83,8 +85,7 @@ classdef dicePixelClassification3dLayer < nnet.layer.ClassificationLayer
             
             N = size(Y,5);
             dLdY = (2*W.*Y.*numer./denom.^2 - 2*W.*T./denom)./N;
-            %fprintf('%1.2e\n', dLdY); 
-            %grad_val(end+1) = dLdY; 
+            writematrix(dLdY, 'gradient.txt', 'Writemode', 'append');
         end
     end
 end

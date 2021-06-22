@@ -5,7 +5,7 @@ clear; close all; clc;
 kfoldnum = zeros(0,1); mydice = zeros(0,1); matdice = zeros(0,1);
 
 % Call the directories
-destination_runs = pwd + "/IRCADwithC3d/liver_30epoch_conv1";
+destination_runs = pwd + "/IRCADwithC3d/liver_30epoch_6";
 destination = pwd + "/testrun"; %image files
 epnum = 30;
 
