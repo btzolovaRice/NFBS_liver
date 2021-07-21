@@ -85,7 +85,7 @@ classdef dicePixelClassification3dLayer < nnet.layer.ClassificationLayer
             
             N = size(Y,5);
             dLdY = (2*W.*Y.*numer./denom.^2 - 2*W.*T./denom)./N;
-            writematrix(dLdY, 'gradient.txt', 'Writemode', 'append');
+            %writematrix(dLdY, 'gradient.txt', 'Writemode', 'append');
         end
     end
 end

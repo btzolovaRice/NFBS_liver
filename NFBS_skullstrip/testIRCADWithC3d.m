@@ -5,15 +5,15 @@ clear; close all; clc;
 kfoldnum = zeros(0,1); mydice = zeros(0,1); matdice = zeros(0,1);
 
 % Call the directories
-destination_runs = pwd + "/IRCADwithC3d/liver_30epoch_6";
-destination = pwd + "/testrun"; %image files
-epnum = 30;
+destination_runs = pwd + "/IRCADwithC3d/liver_40epoch_13";
+destination = pwd + "/testrun/"; %image files
+epnum = 40;
 
-imgDir = dir(fullfile(destination, 'patient_CT','*.nii'));
+imgDir = dir(fullfile(destination, 'background_null/patient_CT','*.nii'));
 imgFile = {imgDir.name}';
 imgFolder = {imgDir.folder}';
 
-lblDir = dir(fullfile(destination, 'vessel_lbl','*.nii'));
+lblDir = dir(fullfile(destination, 'background_null/vessel_lbl','*.nii'));
 lblFile = {lblDir.name}';
 lblFolder = {lblDir.folder}';
 
@@ -23,7 +23,7 @@ c = struct2cell(s);
 idxTest = cat(1,c{:});
 
 %Load Patient id
-vName = 'inputIRCAD.json';
+vName = 'inputIRCAD_nullback.json';
 jsonData = jsondecode(fileread(vName));
 fullFileName = jsonData.fullFileName;
 delimiter = jsonData.delimiter;
@@ -97,9 +97,10 @@ for kfold = 1:length(idxTest)
     kfoldnum(end+1, 1) = kfold;
     mydice(end+1, 1) = diceval;
     matdice(end+1, 1) = dicemat;
+    fprintf('The dice score is %d\n', diceval);
     
 end
 
-T = table(kfoldnum, mydice, matdice);
+T = table(kfoldnum, mydice);
 T.Properties.VariableNames = {'K fold', 'Dice Score', 'Matlab Dice'};
 writetable(T, destination_runs + "/dicevalues.txt");

@@ -4,14 +4,14 @@
 % Clear workspace
 clearvars; close all; clc;
 
-gpuDevice(1)
+gpuDevice(2)
 
 %Input filename and pathways
-vName = 'inputIRCAD.json'; %load nifti data from inputIRCAD.csv 
+vName = 'inputIRCAD_liver.json'; %load nifti data from inputIRCAD.csv 
 jsonData = jsondecode(fileread(vName)); %changes the original filename 
-dest = "IRCADwithC3d/liver_30epoch_7/";
-desfold = pwd + "/IRCADwithC3d/liver_30epoch_7/";
-epnum = 30;
+dest = "IRCADwithC3d/liver_prediction_2/";
+desfold = pwd + "/IRCADwithC3d/liver_prediction_2/";
+epnum = 40;
 conv = 16;
 
 % Read file pathways into table
@@ -33,8 +33,8 @@ procVolDs = imageDatastore(procVolLoc, ...
     'FileExtensions','.nii','LabelSource','foldernames','ReadFcn',procVolReader);
 
 procLblReader =  @(x) uint8(niftiread(x));
-procLblLoc = fullfile(destination,'vessel_lbl');
-classNames = ["background","Vessel"];
+procLblLoc = fullfile(destination,'liver_lbl');
+classNames = ["background","vessel"];
 pixelLabelID = [0 1];
 procLblDs = pixelLabelDatastore(procLblLoc,classNames,pixelLabelID, ...
     'FileExtensions','.nii','ReadFcn',procLblReader);
@@ -68,9 +68,9 @@ for idxFold = 1:c1.NumTestSets
     pxdsTrain = subset(pxdsHold,idxTrain); %training pixelimagedatastore
 
 %Need Random Patch Extraction on training and validation Data
-    patchSize = [64 64 64];
-    patchPerImage = 16;
-    miniBatchSize = 4; %originally was 8
+    patchSize = [32 32 32];
+    patchPerImage = 128;
+    miniBatchSize = 8; %originally was 8
 
 %training patch datastore
     trPatchDs = randomPatchExtractionDatastore(imdsTrain,pxdsTrain,patchSize, ...
@@ -94,7 +94,7 @@ lgraph = layerGraph();
 % Helper function for densenet3d upsample3dLayer.m
 
 tempLayers = [
-    image3dInputLayer([64 64 64 n_layer],"Name","input","Normalization","none")
+    image3dInputLayer([32 32 32 n_layer],"Name","input","Normalization","none")
     batchNormalizationLayer("Name","BN_Module1_Level1")
     convolution3dLayer([3 3 3],conv,"Name","conv_Module1_Level1","Padding","same","WeightsInitializer","narrow-normal")
     reluLayer("Name","relu_Module1_Level1")];
@@ -258,9 +258,9 @@ plot(lgraph);
 
 
 %% do the training %%
-options = trainingOptions('adam', ...
+options = trainingOptions('sgdm', ...
     'MaxEpochs', epnum, ...
-    'InitialLearnRate',5e-4, ...
+    'InitialLearnRate',5e-2, ...
     'LearnRateSchedule','piecewise', ...
     'LearnRateDropPeriod',5, ...
     'LearnRateDropFactor',0.95, ...
@@ -271,7 +271,7 @@ options = trainingOptions('adam', ...
     'MiniBatchSize',miniBatchSize);
     
     modelDateTime = datestr(now,'dd-mm-yyyy-HH-MM-SS');
-    writematrix([], 'gradient.txt');
+    %writematrix([], 'gradient.txt');
     [net,info] = trainNetwork(trPatchDs,lgraph,options);
     save(sprintf(desfold + 'fold_%d-trainedDensenet3d-Epoch-%d.mat', idxFold, epnum),'net');
     
@@ -287,17 +287,17 @@ options = trainingOptions('adam', ...
     close(2);
     
     %Create graph of gradient
-    gradval = load('gradient.txt');
-    movefile('gradient.txt', dest + 'gradient_' + idxFold + '.txt');
-    iters = length(gradval);
-    epochsp = linspace(1, iters, iters);
-    figh = figure;
-    grad_plot = plot(epochsp, gradval);
-    title('Gradient over Iteration');
-    xlabel('Iteration');
-    ylabel('Gradient');
-    saveas(figh, dest + 'Gradplot_' + idxFold + '.png', 'png');
-    close(2);    
+    %gradval = load('gradient.txt');
+    %movefile('gradient.txt', dest + 'gradient_' + idxFold + '.txt');
+    %iters = length(gradval);
+    %epochsp = linspace(1, iters, iters);
+    %figh = figure;
+    %grad_plot = plot(epochsp, gradval);
+    %title('Gradient over Iteration');
+    %xlabel('Iteration');
+    %ylabel('Gradient');
+    %saveas(figh, dest + 'Gradplot_' + idxFold + '.png', 'png');
+    %close(2);    
     
     %Finish saving
     infotable = struct2table(info);
