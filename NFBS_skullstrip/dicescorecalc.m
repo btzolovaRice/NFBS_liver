@@ -17,7 +17,7 @@ function [diceval, dicemat] = dicescorecalc(Y, T)
             % over channels dim (4) :-  representing classes
             numer = 2*W.*intersection + Epsilon;
             denom = W.*union + Epsilon;
-
+cd
             % Compute Dice score.
             diceval= numer./denom; %dice score manually calculated
 

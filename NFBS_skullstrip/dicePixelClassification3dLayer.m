@@ -13,9 +13,9 @@ classdef dicePixelClassification3dLayer < nnet.layer.ClassificationLayer
     
     properties(Constant)
         Epsilon = 1e-8; %small change to prevent division by 0 
-        mbsize = 4; %the minibatchsize
-        W1 = 1.6; %weight for the vessel
-        W2 = 0.4; %weight for the background
+        W1 = 0.3; %weight for the liver\background
+        W2 = 1.7; %weight for the vessel
+        %W3 = 0.3; %weight for the background\liver
     end
     
     methods
@@ -51,8 +51,8 @@ classdef dicePixelClassification3dLayer < nnet.layer.ClassificationLayer
             weighted_val = W; %gpuArray(single(zeros(layer.mbsize, 1))); %gpuArray(single(zeros(layer.mbsize, 1)));
             
             for i=1:4
-                weighted_val(:,:,1,1,i) = layer.W1*W(1,1,1,1,i).*intersection(1,1,1,1,i) + layer.W2*W(1,1,1,2,i).*intersection(1,1,1,2,i);
-                weighted_val(:,:,1,2,i) = layer.W1*W(1,1,1,1,i).*union(1,1,1,1,i) + layer.W2*W(1,1,1,2,i).*union(1,1,1,2,i);
+                weighted_val(:,:,1,1,i) = layer.W1*W(1,1,1,1,i).*intersection(1,1,1,1,i) + layer.W2*W(1,1,1,2,i).*intersection(1,1,1,2,i); % + layer.W3*W(1,1,1,3,i).*intersection(1,1,1,3,i);
+                weighted_val(:,:,1,2,i) = layer.W1*W(1,1,1,1,i).*union(1,1,1,1,i) + layer.W2*W(1,1,1,2,i).*union(1,1,1,2,i); % + layer.W3*W(1,1,1,3,i).*union(1,1,1,3,i) ;
             end 
             
             % over channels dim (4) :-  representing classes
